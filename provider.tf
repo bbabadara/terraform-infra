@@ -12,11 +12,11 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "3tiers-app-terraform-state"
-    key            = "infra/terraform.tfstate"
-    region         = "eu-west-3"
-    dynamodb_table = "3tiers-app-terraform-locks"
-    encrypt        = true
+    bucket       = "3tiers-app-terraform-state"
+    key          = "infra/terraform.tfstate"
+    region       = "eu-west-3"
+    use_lockfile = true
+    encrypt      = true
   }
 
 }
