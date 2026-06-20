@@ -1,0 +1,65 @@
+name: Terraform Deploy1
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_REGION: eu-west-3
+
+jobs:
+  terraform:
+    name: Terraform
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.10.x
+
+      - name: Bootstrap backend
+        run: |
+          BUCKET="3tiers-app-terraform-state"
+          REGION="${{ env.AWS_REGION }}"
+
+          if ! aws s3api head-bucket --bucket "$BUCKET" 2>/dev/null; then
+            aws s3api create-bucket --bucket "$BUCKET" \
+              --region "$REGION" \
+              --create-bucket-configuration LocationConstraint="$REGION"
+            aws s3api put-bucket-versioning --bucket "$BUCKET" \
+              --versioning-configuration Status=Enabled
+          fi
+
+      - name: Terraform Init
+        working-directory: ./terra
+        run: terraform init -reconfigure
+
+      - name: Terraform Format
+        working-directory: ./terra
+        run: terraform fmt -check
+
+      - name: Terraform Validate
+        working-directory: ./terra
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: ./terra
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        working-directory: ./terra
+        run: terraform apply -auto-approve tfplan
+  

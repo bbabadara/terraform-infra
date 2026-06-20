@@ -11,4 +11,4 @@ override.tf.json
 *_override.tf.json
 *.sh
 .env
-*.yml
+docker-compose.yml
